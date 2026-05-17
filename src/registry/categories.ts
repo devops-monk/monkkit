@@ -28,4 +28,13 @@ export const CATEGORIES: ToolCategory[] = [
     slug: "encoding",
     order: 3,
   },
+  {
+    id: "certificates",
+    name: "Certificates",
+    description: "Decode, generate, and convert SSL/TLS certificates and keys",
+    icon: "ShieldCheck",
+    color: "green",
+    slug: "certificates",
+    order: 4,
+  },
 ];
