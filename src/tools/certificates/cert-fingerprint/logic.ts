@@ -9,10 +9,12 @@ export interface FingerprintOutput {
   md5?: string;
 }
 
-function pemToDer(pem: string): Uint8Array {
+function pemToDer(pem: string): ArrayBuffer {
   const b64 = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
   const bin = atob(b64);
-  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer as ArrayBuffer;
 }
 
 function toHexColon(buf: ArrayBuffer): string {
