@@ -5,9 +5,11 @@ export type CategoryId =
   | "generators"
   | "encoding"
   | "certificates"
-  | "images"
+  | "cryptography"
+  | "network"
   | "text"
-  | "network";
+  | "datetime"
+  | "images";
 
 export interface ToolCategory {
   id: CategoryId;

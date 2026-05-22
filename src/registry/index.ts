@@ -3,11 +3,24 @@ import { jsonTools } from "./tools/json";
 import { generatorTools } from "./tools/generators";
 import { encodingTools } from "./tools/encoding";
 import { certificateTools } from "./tools/certificates";
+import { cryptographyTools } from "./tools/cryptography";
+import { networkTools } from "./tools/network";
+import { textTools } from "./tools/text";
+import { datetimeTools } from "./tools/datetime";
 import type { ToolRegistry, ToolDefinition, CategoryId } from "@/types/registry";
 
 export const registry: ToolRegistry = {
   categories: CATEGORIES,
-  tools: [...jsonTools, ...generatorTools, ...encodingTools, ...certificateTools],
+  tools: [
+    ...jsonTools,
+    ...generatorTools,
+    ...encodingTools,
+    ...cryptographyTools,
+    ...networkTools,
+    ...textTools,
+    ...datetimeTools,
+    ...certificateTools,
+  ],
 };
 
 export function getAllTools(): ToolDefinition[] {
