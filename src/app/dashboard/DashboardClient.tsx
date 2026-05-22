@@ -2,8 +2,8 @@
 
 import { useState, useTransition, useRef } from "react";
 import {
-  Eye, EyeOff, BookOpen, ExternalLink, Plus, Trash2,
-  Key, ChevronDown, ChevronUp, AlertCircle,
+  Eye, EyeOff, BookOpen, Plus, Trash2, Key, AlertCircle,
+  Activity, Coffee, Zap, CheckCircle2, Clock, Shield,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { CopyButton } from "@/components/tool-ui/CopyButton";
 import { createApiKeyAction, revokeApiKeyAction } from "./actions";
+import { getCategoryColors } from "@/lib/category-colors";
 import type { ToolCategory } from "@/types/registry";
 
 const USAGE_LIMIT = 1000;
@@ -29,9 +30,10 @@ interface Props {
   keys: ApiKey[];
   categories: ToolCategory[];
   userName: string;
+  userImage?: string | null;
 }
 
-// ── Create Key Form ──────────────────────────────────────────────────────────
+// ── Create Key Form ─────────────────────────────────────────────────────────
 
 function CreateKeyForm({
   categories,
@@ -71,54 +73,57 @@ function CreateKeyForm({
   };
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
-        <label className="block text-sm font-medium mb-1.5">Key name</label>
+        <label className="block text-sm font-semibold mb-2">Key name</label>
         <input
           name="name"
           required
           placeholder='e.g. "JSON Bot", "CI Pipeline"'
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Allowed categories</label>
-        <div className="flex flex-wrap gap-2">
+        <label className="block text-sm font-semibold mb-3">Allowed categories</label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {categories.map((cat) => {
             const on = selected.has(cat.id);
+            const colors = getCategoryColors(cat.color);
             return (
               <button
                 key={cat.id}
                 type="button"
                 onClick={() => toggle(cat.id)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
                   on
-                    ? "bg-primary/15 border-primary/50 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/30"
+                    ? `${colors.activeBg} ${colors.border} ${colors.activeText}`
+                    : "border-border text-muted-foreground hover:border-border hover:bg-muted/50"
                 }`}
               >
+                <div className={`h-2 w-2 rounded-full ${on ? colors.iconText.replace("text-", "bg-") : "bg-muted-foreground/40"}`} />
                 {cat.name}
               </button>
             );
           })}
         </div>
-        <p className="text-xs text-muted-foreground mt-1.5">
+        <p className="text-sm text-muted-foreground mt-2">
           This key can only call tools in the selected categories.
         </p>
       </div>
 
       {error && (
-        <p className="flex items-center gap-1.5 text-sm text-destructive">
+        <p className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
           <AlertCircle className="h-4 w-4 shrink-0" /> {error}
         </p>
       )}
 
-      <div className="flex gap-2">
-        <Button type="submit" disabled={pending} size="sm">
+      <div className="flex gap-2 pt-1">
+        <Button type="submit" disabled={pending} className="gap-2">
+          <Zap className="h-4 w-4" />
           {pending ? "Creating…" : "Create key"}
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={onDone}>
+        <Button type="button" variant="ghost" onClick={onDone}>
           Cancel
         </Button>
       </div>
@@ -126,112 +131,120 @@ function CreateKeyForm({
   );
 }
 
-// ── Single Key Card ──────────────────────────────────────────────────────────
+// ── Key Card ─────────────────────────────────────────────────────────────────
 
-function KeyCard({
-  apiKey,
-  categories,
-}: {
-  apiKey: ApiKey;
-  categories: ToolCategory[];
-}) {
+function KeyCard({ apiKey, categories }: { apiKey: ApiKey; categories: ToolCategory[] }) {
   const [visible, setVisible] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const displayKey = visible
     ? apiKey.key
-    : apiKey.key.slice(0, 10) + "•".repeat(28);
+    : apiKey.key.slice(0, 12) + "•".repeat(24);
 
   const pct = Math.min((apiKey.usageToday / USAGE_LIMIT) * 100, 100);
   const catMap = Object.fromEntries(categories.map((c) => [c.id, c]));
   const allowedCats = apiKey.permissions.map((p) => catMap[p.category]).filter(Boolean);
+  const remaining = USAGE_LIMIT - apiKey.usageToday;
+
+  const barColor = pct > 90 ? "bg-red-500" : pct > 70 ? "bg-yellow-500" : "bg-primary";
 
   const handleRevoke = () => {
-    startTransition(async () => {
-      await revokeApiKeyAction(apiKey.id);
-    });
+    startTransition(async () => { await revokeApiKeyAction(apiKey.id); });
   };
 
   return (
-    <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border/30">
-        <div className="flex items-center gap-2 min-w-0">
-          <Key className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="font-semibold truncate">{apiKey.name}</span>
+      <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-border bg-muted/30">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <Key className="h-4.5 w-4.5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-bold text-base truncate">{apiKey.name}</p>
+            <p className="text-xs text-muted-foreground">
+              Created {new Date(apiKey.createdAt).toLocaleDateString("en-GB")}
+              {apiKey.lastUsed && <> · Last used {new Date(apiKey.lastUsed).toLocaleDateString("en-GB")}</>}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {allowedCats.map((cat) => (
-            <span
-              key={cat.id}
-              className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
-            >
-              {cat.name}
-            </span>
-          ))}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="h-2 w-2 rounded-full bg-green-500" />
+          <span className="text-xs font-medium text-green-600 dark:text-green-400">Active</span>
         </div>
       </div>
 
-      {/* Key + copy */}
-      <div className="px-5 py-4 flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono break-all">
-            {displayKey}
-          </code>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setVisible((v) => !v)}
-            title={visible ? "Hide" : "Show"}
-          >
-            {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </Button>
-          <CopyButton value={apiKey.key} label="" />
+      <div className="px-6 py-5 flex flex-col gap-5">
+        {/* Category pills */}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">
+            Allowed categories
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {allowedCats.map((cat) => {
+              const colors = getCategoryColors(cat.color);
+              return (
+                <span key={cat.id} className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold ${colors.badgeBg} ${colors.badgeText}`}>
+                  {cat.name}
+                </span>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Usage bar */}
+        {/* API Key */}
         <div>
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-            <span>Today: {apiKey.usageToday} / {USAGE_LIMIT} requests</span>
-            <span>{Math.round(pct)}%</span>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">
+            API Key
+          </p>
+          <div className="flex items-center gap-2 rounded-xl bg-[#0d1117] border border-border px-4 py-3">
+            <code className="flex-1 text-sm font-mono text-[#e6edf3] break-all select-all">
+              {displayKey}
+            </code>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => setVisible((v) => !v)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#8b949e] hover:text-[#e6edf3] hover:bg-white/10 transition-colors"
+                title={visible ? "Hide key" : "Reveal key"}
+              >
+                {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+              <CopyButton value={apiKey.key} label="" />
+            </div>
           </div>
-          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+        </div>
+
+        {/* Usage */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Daily Usage
+            </p>
+            <span className="text-xs font-semibold tabular-nums">
+              {apiKey.usageToday} <span className="text-muted-foreground font-normal">/ {USAGE_LIMIT}</span>
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all ${
-                pct > 90 ? "bg-red-500" : pct > 70 ? "bg-yellow-500" : "bg-primary"
-              }`}
-              style={{ width: `${pct}%` }}
+              className={`h-full rounded-full transition-all ${barColor}`}
+              style={{ width: `${pct || 2}%` }}
             />
           </div>
+          <p className="text-xs text-muted-foreground mt-1.5">
+            {remaining.toLocaleString()} requests remaining today · resets at midnight UTC
+          </p>
         </div>
 
-        {/* Meta + revoke */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            Created {new Date(apiKey.createdAt).toLocaleDateString()}
-            {apiKey.lastUsed && (
-              <> · Last used {new Date(apiKey.lastUsed).toLocaleDateString()}</>
-            )}
-          </span>
+        {/* Revoke */}
+        <div className="flex items-center justify-end pt-1 border-t border-border">
           {confirming ? (
             <div className="flex items-center gap-2">
-              <span className="text-destructive">Revoke this key?</span>
-              <Button
-                size="sm"
-                variant="destructive"
-                className="h-6 px-2 text-xs"
-                disabled={pending}
-                onClick={handleRevoke}
-              >
+              <span className="text-sm text-destructive font-medium">Revoke this key?</span>
+              <Button size="sm" variant="destructive" disabled={pending} onClick={handleRevoke} className="h-8">
                 {pending ? "…" : "Yes, revoke"}
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 px-2 text-xs"
-                onClick={() => setConfirming(false)}
-              >
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => setConfirming(false)}>
                 Cancel
               </Button>
             </div>
@@ -239,10 +252,10 @@ function KeyCard({
             <Button
               size="sm"
               variant="ghost"
-              className="h-6 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="h-8 gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               onClick={() => setConfirming(true)}
             >
-              <Trash2 className="h-3 w-3 mr-1" /> Revoke
+              <Trash2 className="h-3.5 w-3.5" /> Revoke key
             </Button>
           )}
         </div>
@@ -251,114 +264,219 @@ function KeyCard({
   );
 }
 
-// ── Dashboard ────────────────────────────────────────────────────────────────
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 
-export function DashboardClient({ keys, categories, userName }: Props) {
+export function DashboardClient({ keys, categories, userName, userImage }: Props) {
   const [creating, setCreating] = useState(false);
   const donateUrl = process.env.NEXT_PUBLIC_DONATE_URL ?? "https://buymeacoffee.com";
 
   const totalUsageToday = keys.reduce((s, k) => s + k.usageToday, 0);
   const firstKey = keys[0];
+  const firstName = userName ? userName.split(" ")[0] : "there";
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
 
-      <main className="flex-1 px-4 lg:px-8 py-10 max-w-2xl mx-auto w-full">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-bold">
-            Welcome{userName ? `, ${userName.split(" ")[0]}` : ""}!
-          </h1>
-          <Button size="sm" onClick={() => setCreating((v) => !v)} className="gap-1.5">
-            {creating ? (
-              <><ChevronUp className="h-4 w-4" /> Cancel</>
-            ) : (
-              <><Plus className="h-4 w-4" /> New API Key</>
-            )}
-          </Button>
-        </div>
-        <p className="text-muted-foreground text-sm mb-8">
-          Create scoped API keys — each key controls which tool categories it can access.
-        </p>
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 lg:px-8 py-10">
 
-        {/* Create form */}
-        {creating && (
-          <section className="rounded-xl border border-primary/30 bg-primary/5 p-5 mb-6">
-            <h2 className="font-semibold mb-4">New API Key</h2>
-            <CreateKeyForm categories={categories} onDone={() => setCreating(false)} />
-          </section>
-        )}
-
-        {/* Summary */}
-        {keys.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="rounded-xl border border-border/50 bg-card p-4">
-              <p className="text-xs text-muted-foreground mb-1">Active Keys</p>
-              <p className="text-2xl font-bold">{keys.length}</p>
+        {/* Welcome banner */}
+        <div className="relative rounded-2xl overflow-hidden border border-border mb-8 bg-gradient-to-br from-primary/10 via-background to-background">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, oklch(0.535 0.233 264 / 0.3) 1px, transparent 0)`,
+              backgroundSize: "24px 24px",
+            }}
+          />
+          <div className="relative flex items-center justify-between gap-4 px-7 py-6">
+            <div className="flex items-center gap-4">
+              {userImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={userImage} alt={userName} className="h-14 w-14 rounded-full ring-2 ring-primary/30 shrink-0" />
+              ) : (
+                <div className="h-14 w-14 rounded-full bg-primary/20 flex items-center justify-center shrink-0 ring-2 ring-primary/30">
+                  <span className="text-xl font-bold text-primary">{firstName[0]?.toUpperCase()}</span>
+                </div>
+              )}
+              <div>
+                <p className="text-muted-foreground text-sm font-medium">Welcome back,</p>
+                <h1 className="text-3xl font-extrabold">{firstName}!</h1>
+              </div>
             </div>
-            <div className="rounded-xl border border-border/50 bg-card p-4">
-              <p className="text-xs text-muted-foreground mb-1">Total Requests Today</p>
-              <p className="text-2xl font-bold">{totalUsageToday}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Keys list */}
-        {keys.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed border-border p-10 text-center text-muted-foreground">
-            <Key className="h-8 w-8 mx-auto mb-3 opacity-30" />
-            <p className="font-medium mb-1">No API keys yet</p>
-            <p className="text-sm mb-4">Create your first key to start using the API.</p>
-            <Button size="sm" onClick={() => setCreating(true)} className="gap-1.5">
-              <Plus className="h-4 w-4" /> Create First Key
+            <Button onClick={() => setCreating((v) => !v)} className="gap-2 shrink-0" size="lg">
+              <Plus className="h-5 w-5" />
+              {creating ? "Cancel" : "New API Key"}
             </Button>
           </div>
-        ) : (
-          <div className="flex flex-col gap-4 mb-6">
-            {keys.map((k) => (
-              <KeyCard key={k.id} apiKey={k} categories={categories} />
-            ))}
+        </div>
+
+        {/* Create key form */}
+        {creating && (
+          <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-6 mb-8">
+            <div className="flex items-center gap-2 mb-5">
+              <div className="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                <Key className="h-4 w-4 text-primary" />
+              </div>
+              <h2 className="text-lg font-bold">Create New API Key</h2>
+            </div>
+            <CreateKeyForm categories={categories} onDone={() => setCreating(false)} />
           </div>
         )}
 
-        {/* Quick start */}
-        {firstKey && (
-          <section className="rounded-xl border border-border/50 bg-card p-5 mb-4">
+        {/* Stats row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="rounded-2xl border border-border bg-card p-5">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">Quick Start</h2>
+              <p className="text-sm font-medium text-muted-foreground">Active Keys</p>
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Key className="h-4 w-4 text-primary" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold tabular-nums">{keys.length}</p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-muted-foreground">Requests Today</p>
+              <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <Activity className="h-4 w-4 text-blue-500" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold tabular-nums">{totalUsageToday.toLocaleString()}</p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-muted-foreground">Daily Limit</p>
+              <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold tabular-nums">1,000</p>
+            <p className="text-xs text-muted-foreground mt-1">per key · resets midnight UTC</p>
+          </div>
+        </div>
+
+        {/* Keys section */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-bold">Your API Keys</h2>
+            {keys.length > 0 && (
+              <span className="ml-auto text-sm text-muted-foreground">{keys.length} key{keys.length !== 1 ? "s" : ""}</span>
+            )}
+          </div>
+
+          {keys.length === 0 ? (
+            <div className="rounded-2xl border-2 border-dashed border-border p-14 text-center">
+              <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                <Key className="h-8 w-8 text-muted-foreground/40" />
+              </div>
+              <p className="text-lg font-semibold mb-1">No API keys yet</p>
+              <p className="text-muted-foreground mb-5">Create your first key to start automating with the API.</p>
+              <Button onClick={() => setCreating(true)} className="gap-2">
+                <Plus className="h-4 w-4" /> Create First Key
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {keys.map((k) => (
+                <KeyCard key={k.id} apiKey={k} categories={categories} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Quick Start */}
+        {firstKey && (
+          <div className="rounded-2xl border border-border bg-card overflow-hidden mb-6">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Zap className="h-4 w-4 text-primary" />
+                </div>
+                <h2 className="font-bold text-base">Quick Start</h2>
+              </div>
               <Link
                 href="/docs/api"
-                className="flex items-center gap-1 text-xs text-primary hover:underline"
+                className="flex items-center gap-1.5 text-sm text-primary hover:underline font-medium"
               >
-                <BookOpen className="h-3.5 w-3.5" />
+                <BookOpen className="h-4 w-4" />
                 Full API reference
-                <ExternalLink className="h-3 w-3" />
               </Link>
             </div>
-            <pre className="bg-muted rounded-lg p-3 text-xs overflow-x-auto leading-relaxed">
+            <div>
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-[#161b22] border-b border-white/10">
+                <div className="flex gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-red-400/80" />
+                  <div className="h-3 w-3 rounded-full bg-yellow-400/80" />
+                  <div className="h-3 w-3 rounded-full bg-green-400/80" />
+                </div>
+                <span className="text-xs text-[#8b949e] ml-1">terminal</span>
+              </div>
+              <pre className="bg-[#0d1117] text-[#e6edf3] px-6 py-5 text-sm font-mono overflow-x-auto leading-relaxed whitespace-pre">
 {`curl -X POST https://tools.devops-monk.com/api/v1/json/validator \\
   -H "Authorization: Bearer ${firstKey.key}" \\
   -H "Content-Type: application/json" \\
   -d '{"input": "{\\"name\\": \\"Alice\\"}"}'`}
-            </pre>
-            <p className="text-xs text-muted-foreground mt-2">
-              Pattern:{" "}
-              <code className="bg-muted px-1 rounded font-mono">POST /api/v1/&#123;category&#125;/&#123;tool&#125;</code>
-              {" "}— returns 403 if the key lacks permission for that category.
-            </p>
-          </section>
+              </pre>
+            </div>
+            <div className="px-6 py-3 border-t border-border bg-muted/20">
+              <p className="text-sm text-muted-foreground">
+                Pattern:{" "}
+                <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-xs">
+                  POST /api/v1/<span className="text-primary">category</span>/<span className="text-primary">tool</span>
+                </code>
+                {" "}— returns <code className="bg-muted px-1 rounded font-mono text-xs">403</code> if the key lacks permission for that category.
+              </p>
+            </div>
+          </div>
         )}
 
+        {/* Info row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div className="rounded-2xl border border-border bg-card p-5 flex items-start gap-3">
+            <Clock className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm mb-1">Rate limit resets daily</p>
+              <p className="text-sm text-muted-foreground">
+                Each key gets 1,000 free requests per day. Resets at midnight UTC.
+                Need more? Email us.
+              </p>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5 flex items-start gap-3">
+            <Shield className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm mb-1">Scoped permissions</p>
+              <p className="text-sm text-muted-foreground">
+                Each key only accesses the categories you chose. Revoke any key instantly from this dashboard.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Donate */}
-        <section className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-5">
-          <p className="text-sm">
-            ☕ Enjoying MonkKit? It&apos;s free and always will be.{" "}
-            <a href={donateUrl} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline font-medium">
-              Buy me a coffee
-            </a>{" "}
-            to support development!
-          </p>
-        </section>
+        <div className="rounded-2xl border border-yellow-500/25 bg-gradient-to-r from-yellow-500/8 to-amber-500/5 p-6 flex items-center gap-4">
+          <div className="h-12 w-12 shrink-0 rounded-2xl bg-yellow-500/15 flex items-center justify-center text-2xl">
+            ☕
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-base mb-0.5">Enjoying MonkKit?</p>
+            <p className="text-sm text-muted-foreground">
+              It&apos;s free and always will be. If it saves you time, consider buying me a coffee.
+            </p>
+          </div>
+          <a
+            href={donateUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-yellow-500 hover:bg-yellow-400 px-4 py-2.5 text-sm font-bold text-yellow-950 transition-colors"
+          >
+            <Coffee className="h-4 w-4" />
+            Buy me a coffee
+          </a>
+        </div>
+
       </main>
 
       <AppFooter />

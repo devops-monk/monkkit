@@ -26,6 +26,7 @@ export default async function DashboardPage() {
       keys={keys}
       categories={CATEGORIES}
       userName={session.user.name ?? ""}
+      userImage={session.user.image ?? null}
     />
   );
 }
