@@ -10,7 +10,7 @@ interface Props {
 export function ToolBreadcrumb({ tool }: Props) {
   const category = getCategory(tool.category);
   return (
-    <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
+    <nav className="flex items-center gap-1 text-base text-muted-foreground mb-2">
       <Link href="/" className="hover:text-foreground transition-colors">
         Home
       </Link>

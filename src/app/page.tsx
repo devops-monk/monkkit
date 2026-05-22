@@ -11,20 +11,20 @@ export default function HomePage() {
     <div className="flex flex-col min-h-screen">
       <AppHeader />
 
-      <main className="flex-1 px-4 lg:px-8 py-12">
+      <main className="flex-1 px-4 lg:px-8 py-16">
         {/* Hero */}
-        <div className="max-w-2xl mx-auto text-center mb-12">
-          <h1 className="text-4xl font-bold tracking-tight mb-4">
+        <div className="max-w-2xl mx-auto text-center mb-16">
+          <h1 className="text-5xl font-bold tracking-tight mb-5">
             Free Developer Tools
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-xl text-muted-foreground leading-relaxed">
             Every tool you need, in one place. No login, no ads, no nonsense.
             Built by a DevOps engineer for developers.
           </p>
         </div>
 
         {/* Categories grid */}
-        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {registry.categories.map((category) => {
             const tools = registry.tools.filter((t) => t.category === category.id);
             const Icon = getCategoryIcon(category.icon);
@@ -33,19 +33,19 @@ export default function HomePage() {
               <Link
                 key={category.id}
                 href={`/tools/${category.slug}`}
-                className="group rounded-xl border border-border/50 bg-card p-5 hover:border-primary/50 hover:bg-card/80 transition-all"
+                className="group rounded-xl border border-border/50 bg-card p-6 hover:border-primary/50 hover:shadow-sm transition-all"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="rounded-lg bg-primary/10 p-2.5">
-                    <Icon className="h-5 w-5 text-primary" />
+                <div className="flex items-start justify-between mb-4">
+                  <div className="rounded-lg bg-primary/10 p-3">
+                    <Icon className="h-6 w-6 text-primary" />
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all mt-1" />
                 </div>
-                <h2 className="font-semibold mb-1">{category.name}</h2>
-                <p className="text-sm text-muted-foreground mb-3">
+                <h2 className="text-lg font-semibold mb-1.5">{category.name}</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
                   {category.description}
                 </p>
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-sm px-2.5 py-0.5">
                   {tools.length} tool{tools.length !== 1 ? "s" : ""}
                 </Badge>
               </Link>

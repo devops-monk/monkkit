@@ -42,8 +42,11 @@ export default async function ToolPage({
   const toolDef = getToolBySlug(category, tool);
   if (!toolDef) notFound();
 
+  // Strip non-serializable fields before passing to client component
+  const { component: _c, process: _p, ...meta } = toolDef;
+
   return (
-    <ToolShell meta={toolDef}>
+    <ToolShell meta={meta}>
       <ToolRenderer category={category} slug={tool} />
     </ToolShell>
   );
