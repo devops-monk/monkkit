@@ -8,6 +8,7 @@ import { networkTools } from "./tools/network";
 import { emailTools } from "./tools/email";
 import { textTools } from "./tools/text";
 import { datetimeTools } from "./tools/datetime";
+import { imageTools } from "./tools/images";
 import type { ToolRegistry, ToolDefinition, CategoryId } from "@/types/registry";
 
 export const registry: ToolRegistry = {
@@ -22,6 +23,7 @@ export const registry: ToolRegistry = {
     ...textTools,
     ...datetimeTools,
     ...certificateTools,
+    ...imageTools,
   ],
 };
 

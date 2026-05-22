@@ -74,6 +74,15 @@ export const CATEGORIES: ToolCategory[] = [
     order: 8,
   },
   {
+    id: "images",
+    name: "Images",
+    description: "Resize, crop, convert, compress, and filter images — all in your browser",
+    icon: "Image",
+    color: "pink",
+    slug: "images",
+    order: 9,
+  },
+  {
     id: "certificates",
     name: "Certificates",
     description: "Decode, generate, and convert SSL/TLS certificates and keys",

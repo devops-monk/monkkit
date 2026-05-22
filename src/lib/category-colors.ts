@@ -82,6 +82,15 @@ const MAP: Record<string, CategoryColors> = {
     activeText: "text-teal-700 dark:text-teal-300",
     border: "border-teal-500/30",
   },
+  pink: {
+    iconBg: "bg-pink-500/15",
+    iconText: "text-pink-600 dark:text-pink-400",
+    badgeBg: "bg-pink-500/15",
+    badgeText: "text-pink-700 dark:text-pink-300",
+    activeBg: "bg-pink-500/10",
+    activeText: "text-pink-700 dark:text-pink-300",
+    border: "border-pink-500/30",
+  },
   green: {
     iconBg: "bg-green-500/15",
     iconText: "text-green-600 dark:text-green-400",
