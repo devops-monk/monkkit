@@ -8,6 +8,7 @@ import { imageFiltersTool } from "./image-filters";
 import { imageWatermarkTool } from "./image-watermark";
 import { imageToBase64Tool } from "./image-to-base64";
 import { imageInfoTool } from "./image-info";
+import { logoGeneratorTool } from "./logo-generator";
 
 export const imageTools: ToolDefinition[] = [
   imageResizeTool,
@@ -19,4 +20,5 @@ export const imageTools: ToolDefinition[] = [
   imageWatermarkTool,
   imageToBase64Tool,
   imageInfoTool,
+  logoGeneratorTool,
 ];
