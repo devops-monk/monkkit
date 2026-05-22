@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getAllToolSlugs, getToolBySlug } from "@/registry";
 import { ToolShell } from "@/components/tool-ui/ToolShell";
@@ -46,8 +47,10 @@ export default async function ToolPage({
   const { component: _c, process: _p, ...meta } = toolDef;
 
   return (
-    <ToolShell meta={meta}>
-      <ToolRenderer category={category} slug={tool} />
-    </ToolShell>
+    <Suspense fallback={null}>
+      <ToolShell meta={meta}>
+        <ToolRenderer category={category} slug={tool} />
+      </ToolShell>
+    </Suspense>
   );
 }

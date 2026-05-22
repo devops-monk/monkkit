@@ -271,7 +271,7 @@ export default function ApiDocsPage() {
                             {tool.shortDescription}
                           </p>
                           <Link
-                            href={`/tools/${tool.category}/${tool.slug}`}
+                            href={`/tools/${tool.category}/${tool.slug}?tab=api`}
                             className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors opacity-0 group-hover:opacity-100"
                           >
                             API tab <ExternalLink className="h-3 w-3" />

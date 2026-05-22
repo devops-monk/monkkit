@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ToolBreadcrumb } from "@/components/layout/ToolBreadcrumb";
@@ -114,6 +115,8 @@ function ApiUsagePanel({ meta }: { meta: ToolMeta }) {
 }
 
 export function ToolShell({ meta, children, actions }: Props) {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") === "api" ? "api" : "tool";
   const category = registry.categories.find((c) => c.id === meta.category);
   const colors = getCategoryColors(category?.color ?? "");
   const Icon = getCategoryIcon(category?.icon ?? "");
@@ -149,7 +152,7 @@ export function ToolShell({ meta, children, actions }: Props) {
 
       {/* Tabs */}
       <div className="flex-1 px-5 lg:px-8 py-5">
-        <Tabs defaultValue="tool" className="gap-0">
+        <Tabs defaultValue={initialTab} className="gap-0">
           <TabsList className="mb-5">
             <TabsTrigger value="tool">Tool</TabsTrigger>
             <TabsTrigger value="api">API Usage</TabsTrigger>
