@@ -7,6 +7,7 @@ export type CategoryId =
   | "certificates"
   | "cryptography"
   | "network"
+  | "email"
   | "text"
   | "datetime"
   | "images";

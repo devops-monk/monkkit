@@ -5,6 +5,7 @@ import { encodingTools } from "./tools/encoding";
 import { certificateTools } from "./tools/certificates";
 import { cryptographyTools } from "./tools/cryptography";
 import { networkTools } from "./tools/network";
+import { emailTools } from "./tools/email";
 import { textTools } from "./tools/text";
 import { datetimeTools } from "./tools/datetime";
 import type { ToolRegistry, ToolDefinition, CategoryId } from "@/types/registry";
@@ -17,6 +18,7 @@ export const registry: ToolRegistry = {
     ...encodingTools,
     ...cryptographyTools,
     ...networkTools,
+    ...emailTools,
     ...textTools,
     ...datetimeTools,
     ...certificateTools,

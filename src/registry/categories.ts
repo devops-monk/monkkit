@@ -40,11 +40,20 @@ export const CATEGORIES: ToolCategory[] = [
   {
     id: "network",
     name: "Network",
-    description: "IP address parsing, URL analysis, and network utilities",
+    description: "DNS lookups, WHOIS, subnet calculator, and network diagnostics",
     icon: "Globe",
     color: "cyan",
     slug: "network",
     order: 5,
+  },
+  {
+    id: "email",
+    name: "Email & DNS",
+    description: "MX, SPF, DMARC, DKIM lookups and email header analysis",
+    icon: "Mail",
+    color: "indigo",
+    slug: "email",
+    order: 6,
   },
   {
     id: "text",
@@ -53,7 +62,7 @@ export const CATEGORIES: ToolCategory[] = [
     icon: "Type",
     color: "orange",
     slug: "text",
-    order: 6,
+    order: 7,
   },
   {
     id: "datetime",
@@ -62,7 +71,7 @@ export const CATEGORIES: ToolCategory[] = [
     icon: "Calendar",
     color: "teal",
     slug: "datetime",
-    order: 7,
+    order: 8,
   },
   {
     id: "certificates",
@@ -71,6 +80,6 @@ export const CATEGORIES: ToolCategory[] = [
     icon: "ShieldCheck",
     color: "green",
     slug: "certificates",
-    order: 8,
+    order: 9,
   },
 ];
