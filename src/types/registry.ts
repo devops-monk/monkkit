@@ -33,6 +33,7 @@ export interface ToolMeta {
   keywords: string[];
   icon: string;
   status: "stable" | "beta" | "new";
+  apiExample?: Record<string, unknown>;
 }
 
 export interface ToolDefinition extends ToolMeta {

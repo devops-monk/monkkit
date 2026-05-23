@@ -9,6 +9,7 @@ import { getCategoryColors } from "@/lib/category-colors";
 import { registry } from "@/registry";
 import { getCategoryIcon } from "@/lib/category-icons";
 import type { ToolMeta } from "@/types/registry";
+import { API_EXAMPLES } from "@/registry/api-examples";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -25,13 +26,25 @@ const STATUS_VARIANT: Record<ToolMeta["status"], "default" | "secondary" | "outl
 
 const BASE_URL = "https://tools.devops-monk.com";
 
+function buildCurlBody(example: Record<string, unknown> | undefined): string {
+  if (!example) return '\'{"input": "..."}\'';
+  const keys = Object.keys(example);
+  if (keys.length === 0) return "'{}'";
+  const body = JSON.stringify(example, null, 2);
+  // Indent continuation lines to align under -d '
+  const indented = body.replace(/\n/g, "\n    ");
+  return `'${indented}'`;
+}
+
 function ApiUsagePanel({ meta }: { meta: ToolMeta }) {
   const endpoint = `/api/v1/${meta.category}/${meta.slug}`;
   const fullUrl = `${BASE_URL}${endpoint}`;
+  const example = API_EXAMPLES[meta.id];
+  const bodyStr = buildCurlBody(example);
   const curl = `curl -X POST ${fullUrl} \\
   -H "Authorization: Bearer <your-api-key>" \\
   -H "Content-Type: application/json" \\
-  -d '{"input": "..."}'`;
+  -d ${bodyStr}`;
 
   return (
     <div className="flex flex-col gap-5 py-2 max-w-3xl">
@@ -81,6 +94,48 @@ function ApiUsagePanel({ meta }: { meta: ToolMeta }) {
             {curl}
           </pre>
         </div>
+
+        {/* Request body field reference */}
+        {example && Object.keys(example).length > 0 && (
+          <div className="mt-5">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Request Body Fields</p>
+            <div className="rounded-xl border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-1/3">Field</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-1/4">Type</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Example value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(example).map(([key, val], i) => (
+                    <tr key={key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                      <td className="px-4 py-2.5 font-mono text-sm text-primary">{key}</td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {Array.isArray(val) ? "array" : typeof val}
+                      </td>
+                      <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground max-w-xs truncate">
+                        {Array.isArray(val)
+                          ? JSON.stringify(val)
+                          : typeof val === "string"
+                          ? val.length > 60 ? val.slice(0, 60) + "…" : val
+                          : String(val)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* No-input note */}
+        {example && Object.keys(example).length === 0 && (
+          <p className="mt-4 text-sm text-muted-foreground rounded-lg bg-muted/40 px-4 py-3">
+            This endpoint requires no request body — send an empty JSON object <code className="font-mono">{"{}"}</code>.
+          </p>
+        )}
       </div>
 
       {/* Response format */}
