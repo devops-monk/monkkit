@@ -3,14 +3,14 @@
 import { useState, useTransition, useRef } from "react";
 import {
   Eye, EyeOff, BookOpen, Plus, Trash2, Key, AlertCircle,
-  Activity, Coffee, Zap, CheckCircle2, Clock, Shield,
+  Activity, Coffee, Zap, CheckCircle2, Clock, Shield, Pencil, Check,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { CopyButton } from "@/components/tool-ui/CopyButton";
-import { createApiKeyAction, revokeApiKeyAction } from "./actions";
+import { createApiKeyAction, revokeApiKeyAction, updateKeyPermissionsAction } from "./actions";
 import { getCategoryColors } from "@/lib/category-colors";
 import type { ToolCategory } from "@/types/registry";
 
@@ -136,6 +136,8 @@ function CreateKeyForm({
 function KeyCard({ apiKey, categories }: { apiKey: ApiKey; categories: ToolCategory[] }) {
   const [visible, setVisible] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [editingPerms, setEditingPerms] = useState(false);
+  const [editSelected, setEditSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
 
   const displayKey = visible
@@ -151,6 +153,25 @@ function KeyCard({ apiKey, categories }: { apiKey: ApiKey; categories: ToolCateg
 
   const handleRevoke = () => {
     startTransition(async () => { await revokeApiKeyAction(apiKey.id); });
+  };
+
+  const startEditPerms = () => {
+    setEditSelected(new Set(apiKey.permissions.map((p) => p.category)));
+    setEditingPerms(true);
+  };
+
+  const toggleEdit = (id: string) =>
+    setEditSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const savePerms = () => {
+    startTransition(async () => {
+      await updateKeyPermissionsAction(apiKey.id, [...editSelected]);
+      setEditingPerms(false);
+    });
   };
 
   return (
@@ -176,21 +197,66 @@ function KeyCard({ apiKey, categories }: { apiKey: ApiKey; categories: ToolCateg
       </div>
 
       <div className="px-6 py-5 flex flex-col gap-5">
-        {/* Category pills */}
+        {/* Category pills / edit */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">
-            Allowed categories
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {allowedCats.map((cat) => {
-              const colors = getCategoryColors(cat.color);
-              return (
-                <span key={cat.id} className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold ${colors.badgeBg} ${colors.badgeText}`}>
-                  {cat.name}
-                </span>
-              );
-            })}
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Allowed categories
+            </p>
+            {!editingPerms && (
+              <button
+                onClick={startEditPerms}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Pencil className="h-3 w-3" /> Edit
+              </button>
+            )}
           </div>
+
+          {editingPerms ? (
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-1.5">
+                {categories.map((cat) => {
+                  const on = editSelected.has(cat.id);
+                  const colors = getCategoryColors(cat.color);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => toggleEdit(cat.id)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+                        on
+                          ? `${colors.activeBg} ${colors.border} ${colors.activeText}`
+                          : "border-border text-muted-foreground hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className={`h-1.5 w-1.5 rounded-full ${on ? colors.iconText.replace("text-", "bg-") : "bg-muted-foreground/40"}`} />
+                      {cat.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" disabled={pending || editSelected.size === 0} onClick={savePerms} className="h-8 gap-1.5">
+                  <Check className="h-3.5 w-3.5" /> {pending ? "Saving…" : "Save"}
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditingPerms(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {allowedCats.map((cat) => {
+                const colors = getCategoryColors(cat.color);
+                return (
+                  <span key={cat.id} className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold ${colors.badgeBg} ${colors.badgeText}`}>
+                    {cat.name}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* API Key */}

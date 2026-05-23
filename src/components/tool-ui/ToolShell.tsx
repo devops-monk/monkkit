@@ -37,24 +37,34 @@ function buildCurlBody(example: Record<string, unknown> | undefined): string {
   return `'${indented}'`;
 }
 
+interface UserKey {
+  id: string;
+  key: string;
+  name: string;
+  permissions: string[];
+}
+
 function ApiUsagePanel({ meta }: { meta: ToolMeta }) {
-  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [keys, setKeys] = useState<UserKey[]>([]);
 
   useEffect(() => {
     fetch("/api/user/keys")
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        const firstKey = data?.keys?.[0]?.key;
-        if (firstKey) setApiKey(firstKey);
-      })
+      .then((data) => { if (data?.keys) setKeys(data.keys); })
       .catch(() => {});
   }, []);
+
+  // Prefer a key that has permission for this category; fall back to first key
+  const matchingKey = keys.find((k) => k.permissions.includes(meta.category));
+  const activeKey = matchingKey ?? keys[0] ?? null;
+  const hasPermission = !!matchingKey;
+  const noPermissionKey = activeKey && !hasPermission; // has a key but wrong permissions
 
   const endpoint = `/api/v1/${meta.category}/${meta.slug}`;
   const fullUrl = `${BASE_URL}${endpoint}`;
   const example = API_EXAMPLES[meta.id];
   const bodyStr = buildCurlBody(example);
-  const keyDisplay = apiKey ?? "<your-api-key>";
+  const keyDisplay = activeKey?.key ?? "<your-api-key>";
   const curl = `curl -X POST ${fullUrl} \\
   -H "Authorization: Bearer ${keyDisplay}" \\
   -H "Content-Type: application/json" \\
@@ -84,19 +94,29 @@ function ApiUsagePanel({ meta }: { meta: ToolMeta }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
-          <div className={cn("rounded-lg p-3.5 transition-colors", apiKey ? "bg-green-500/8 border border-green-500/20" : "bg-muted/50")}>
-            <div className="flex items-center gap-2 mb-2">
+          <div className={cn(
+            "rounded-lg p-3.5 transition-colors",
+            hasPermission ? "bg-green-500/8 border border-green-500/20"
+            : noPermissionKey ? "bg-amber-500/8 border border-amber-500/20"
+            : "bg-muted/50"
+          )}>
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Authentication</p>
-              {apiKey && (
+              {hasPermission && (
                 <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
                   ✓ key auto-filled
                 </span>
               )}
+              {noPermissionKey && (
+                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                  ⚠ no {meta.category} access
+                </span>
+              )}
             </div>
             <code className="text-xs font-mono break-all">
-              Authorization: Bearer {apiKey ? `${apiKey.slice(0, 18)}…` : "mk_live_…"}
+              Authorization: Bearer {activeKey ? `${activeKey.key.slice(0, 18)}…` : "mk_live_…"}
             </code>
-            {!apiKey && (
+            {!activeKey && (
               <p className="text-xs text-muted-foreground mt-2">
                 <Link href="/auth/signin" className="text-primary hover:underline">Sign in</Link> to auto-fill your key
               </p>
@@ -107,6 +127,24 @@ function ApiUsagePanel({ meta }: { meta: ToolMeta }) {
             <code className="text-xs font-mono">application/json</code>
           </div>
         </div>
+
+        {/* Permission warning banner */}
+        {noPermissionKey && (
+          <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/8 px-4 py-3.5 flex items-start gap-3">
+            <span className="text-amber-500 text-lg leading-none mt-0.5">⚠</span>
+            <div className="text-sm">
+              <p className="font-semibold text-amber-700 dark:text-amber-400 mb-1">
+                Your key &ldquo;{activeKey!.name}&rdquo; doesn&apos;t have access to the <strong>{meta.category}</strong> category.
+              </p>
+              <p className="text-muted-foreground">
+                Go to your{" "}
+                <Link href="/dashboard" className="text-primary hover:underline font-medium">dashboard</Link>
+                {" "}and create a new key with <strong>{meta.category}</strong> selected, or edit the existing key&apos;s permissions.
+                Current access: {activeKey!.permissions.join(", ")}.
+              </p>
+            </div>
+          </div>
+        )}
 
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">curl Example</p>
         <div className="rounded-xl overflow-hidden border border-border">
