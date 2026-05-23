@@ -467,8 +467,8 @@ export function DashboardClient({ keys, categories, userName, userImage }: Props
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
               </div>
             </div>
-            <p className="text-4xl font-extrabold tabular-nums">1,000</p>
-            <p className="text-xs text-muted-foreground mt-1">per key · resets midnight UTC</p>
+            <p className="text-4xl font-extrabold tabular-nums">{USAGE_LIMIT}</p>
+            <p className="text-xs text-muted-foreground mt-1">per account · resets midnight UTC</p>
           </div>
         </div>
 
@@ -555,7 +555,7 @@ export function DashboardClient({ keys, categories, userName, userImage }: Props
             <div>
               <p className="font-semibold text-sm mb-1">Rate limit resets daily</p>
               <p className="text-sm text-muted-foreground">
-                Each key gets 1,000 free requests per day. Resets at midnight UTC.
+                {USAGE_LIMIT} free requests per day across all keys. Resets at midnight UTC.
                 Need more? Email us.
               </p>
             </div>
