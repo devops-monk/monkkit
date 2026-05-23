@@ -14,7 +14,7 @@ import { createApiKeyAction, revokeApiKeyAction } from "./actions";
 import { getCategoryColors } from "@/lib/category-colors";
 import type { ToolCategory } from "@/types/registry";
 
-const USAGE_LIMIT = 1000;
+const USAGE_LIMIT = 100;
 
 interface ApiKey {
   id: string;

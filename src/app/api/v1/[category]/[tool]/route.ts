@@ -53,7 +53,7 @@ export async function POST(
   const allowed = await checkRateLimit(keyRecord.id, toolDef.id);
   if (!allowed) {
     return Response.json(
-      { error: "Daily rate limit exceeded (1000 req/day). Resets at midnight UTC." },
+      { error: "Daily rate limit exceeded (100 req/day). Resets at midnight UTC." },
       { status: 429 }
     );
   }

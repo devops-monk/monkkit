@@ -127,10 +127,10 @@ export default function ApiDocsPage() {
             </div>
             <h3 className="font-semibold text-base mb-2">Rate Limit</h3>
             <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
-              Generous daily quota for building and automation.
+              Free daily quota for building and automation.
             </p>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-bold">1,000</span>
+              <span className="text-3xl font-bold">100</span>
               <span className="text-sm text-muted-foreground">requests / day</span>
             </div>
           </div>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ToolBreadcrumb } from "@/components/layout/ToolBreadcrumb";
@@ -37,12 +38,25 @@ function buildCurlBody(example: Record<string, unknown> | undefined): string {
 }
 
 function ApiUsagePanel({ meta }: { meta: ToolMeta }) {
+  const [apiKey, setApiKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/user/keys")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        const firstKey = data?.keys?.[0]?.key;
+        if (firstKey) setApiKey(firstKey);
+      })
+      .catch(() => {});
+  }, []);
+
   const endpoint = `/api/v1/${meta.category}/${meta.slug}`;
   const fullUrl = `${BASE_URL}${endpoint}`;
   const example = API_EXAMPLES[meta.id];
   const bodyStr = buildCurlBody(example);
+  const keyDisplay = apiKey ?? "<your-api-key>";
   const curl = `curl -X POST ${fullUrl} \\
-  -H "Authorization: Bearer <your-api-key>" \\
+  -H "Authorization: Bearer ${keyDisplay}" \\
   -H "Content-Type: application/json" \\
   -d ${bodyStr}`;
 
@@ -70,9 +84,23 @@ function ApiUsagePanel({ meta }: { meta: ToolMeta }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
-          <div className="rounded-lg bg-muted/50 p-3.5">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Authentication</p>
-            <code className="text-xs font-mono">Authorization: Bearer mk_live_…</code>
+          <div className={cn("rounded-lg p-3.5 transition-colors", apiKey ? "bg-green-500/8 border border-green-500/20" : "bg-muted/50")}>
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Authentication</p>
+              {apiKey && (
+                <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                  ✓ key auto-filled
+                </span>
+              )}
+            </div>
+            <code className="text-xs font-mono break-all">
+              Authorization: Bearer {apiKey ? `${apiKey.slice(0, 18)}…` : "mk_live_…"}
+            </code>
+            {!apiKey && (
+              <p className="text-xs text-muted-foreground mt-2">
+                <Link href="/auth/signin" className="text-primary hover:underline">Sign in</Link> to auto-fill your key
+              </p>
+            )}
           </div>
           <div className="rounded-lg bg-muted/50 p-3.5">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Content-Type</p>

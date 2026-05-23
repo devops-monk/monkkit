@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 
-const DAILY_LIMIT = 1000;
+const DAILY_LIMIT = 100;
 
 export async function checkRateLimit(
   apiKeyId: string,
