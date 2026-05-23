@@ -10,6 +10,7 @@ import { imageToBase64Tool } from "./image-to-base64";
 import { imageInfoTool } from "./image-info";
 import { logoGeneratorTool } from "./logo-generator";
 import { passportPhotoTool } from "./passport-photo";
+import { printGridTool } from "./print-grid";
 
 export const imageTools: ToolDefinition[] = [
   imageResizeTool,
@@ -23,4 +24,5 @@ export const imageTools: ToolDefinition[] = [
   imageInfoTool,
   logoGeneratorTool,
   passportPhotoTool,
+  printGridTool,
 ];
