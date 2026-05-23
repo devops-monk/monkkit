@@ -49,22 +49,29 @@ export async function POST(
     );
   }
 
-  // 4. Check rate limit
-  const allowed = await checkRateLimit(keyRecord.id, toolDef.id);
+  // 4. Check rate limit (per account, not per key)
+  const allowed = await checkRateLimit(keyRecord.id, keyRecord.userId, toolDef.id);
   if (!allowed) {
     return Response.json(
-      { error: "Daily rate limit exceeded (100 req/day). Resets at midnight UTC." },
+      { error: "Daily rate limit exceeded (100 req/day per account). Resets at midnight UTC." },
       { status: 429 }
     );
   }
 
   // 5. Parse body
-  let body: unknown;
+  let body: Record<string, unknown>;
   try {
-    body = await req.json();
+    body = (await req.json()) as Record<string, unknown>;
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
+
+  // Inject client IP for tools that need it (e.g. my-ip)
+  const clientIp =
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    req.headers.get("x-real-ip") ??
+    undefined;
+  if (clientIp) body = { ...body, _clientIp: clientIp };
 
   // 6. Call the process function registered on the tool definition
   try {

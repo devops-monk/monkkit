@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
-import { createApiKey, revokeApiKey } from "@/lib/api-key";
+import { createApiKey, revokeApiKey, generateApiKey } from "@/lib/api-key";
 import { prisma } from "@/lib/db";
 import { CATEGORIES } from "@/registry/categories";
 
@@ -27,6 +27,22 @@ export async function revokeApiKeyAction(keyId: string) {
   await revokeApiKey(session.user.id, keyId);
   revalidatePath("/dashboard");
 }
+
+export async function rotateApiKeyAction(keyId: string) {
+  const session = await auth();
+  if (!session) throw new Error("Not authenticated");
+
+  const key = await prisma.apiKey.findUnique({ where: { id: keyId } });
+  if (!key || key.userId !== session.user.id) throw new Error("Not found");
+
+  await prisma.apiKey.update({
+    where: { id: keyId },
+    data: { key: generateApiKey(), lastUsed: null },
+  });
+
+  revalidatePath("/dashboard");
+}
+
 
 export async function updateKeyPermissionsAction(keyId: string, categories: string[]) {
   const session = await auth();

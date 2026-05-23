@@ -4,13 +4,14 @@ import { useState, useTransition, useRef } from "react";
 import {
   Eye, EyeOff, BookOpen, Plus, Trash2, Key, AlertCircle,
   Activity, Coffee, Zap, CheckCircle2, Clock, Shield, Pencil, Check,
+  RefreshCw, Star,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { CopyButton } from "@/components/tool-ui/CopyButton";
-import { createApiKeyAction, revokeApiKeyAction, updateKeyPermissionsAction } from "./actions";
+import { createApiKeyAction, revokeApiKeyAction, updateKeyPermissionsAction, rotateApiKeyAction } from "./actions";
 import { getCategoryColors } from "@/lib/category-colors";
 import type { ToolCategory } from "@/types/registry";
 
@@ -133,7 +134,7 @@ function CreateKeyForm({
 
 // ── Key Card ─────────────────────────────────────────────────────────────────
 
-function KeyCard({ apiKey, categories }: { apiKey: ApiKey; categories: ToolCategory[] }) {
+function KeyCard({ apiKey, categories, isDefault, onSetDefault }: { apiKey: ApiKey; categories: ToolCategory[]; isDefault: boolean; onSetDefault: () => void }) {
   const [visible, setVisible] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [editingPerms, setEditingPerms] = useState(false);
@@ -174,6 +175,12 @@ function KeyCard({ apiKey, categories }: { apiKey: ApiKey; categories: ToolCateg
     });
   };
 
+  const handleRotate = () => {
+    startTransition(async () => { await rotateApiKeyAction(apiKey.id); });
+  };
+
+  const handleSetDefault = () => onSetDefault();
+
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
       {/* Header */}
@@ -190,9 +197,16 @@ function KeyCard({ apiKey, categories }: { apiKey: ApiKey; categories: ToolCateg
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="h-2 w-2 rounded-full bg-green-500" />
-          <span className="text-xs font-medium text-green-600 dark:text-green-400">Active</span>
+        <div className="flex items-center gap-2 shrink-0">
+          {isDefault && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              <Star className="h-3 w-3 fill-primary" /> Default
+            </span>
+          )}
+          <div className="flex items-center gap-1.5">
+            <div className="h-2 w-2 rounded-full bg-green-500" />
+            <span className="text-xs font-medium text-green-600 dark:text-green-400">Active</span>
+          </div>
         </div>
       </div>
 
@@ -302,11 +316,36 @@ function KeyCard({ apiKey, categories }: { apiKey: ApiKey; categories: ToolCateg
           </p>
         </div>
 
-        {/* Revoke */}
-        <div className="flex items-center justify-end pt-1 border-t border-border">
+        {/* Actions row */}
+        <div className="flex items-center justify-between pt-1 border-t border-border flex-wrap gap-2">
+          <div className="flex items-center gap-1">
+            {!isDefault && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 gap-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                disabled={pending}
+                onClick={handleSetDefault}
+                title="Set as default key for API tab curl examples"
+              >
+                <Star className="h-3.5 w-3.5" /> Set default
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+              disabled={pending}
+              onClick={handleRotate}
+              title="Generate a new key string (old key stops working immediately)"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Rotate
+            </Button>
+          </div>
+
           {confirming ? (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-destructive font-medium">Revoke this key?</span>
+              <span className="text-sm text-destructive font-medium">Revoke?</span>
               <Button size="sm" variant="destructive" disabled={pending} onClick={handleRevoke} className="h-8">
                 {pending ? "…" : "Yes, revoke"}
               </Button>
@@ -321,7 +360,7 @@ function KeyCard({ apiKey, categories }: { apiKey: ApiKey; categories: ToolCateg
               className="h-8 gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               onClick={() => setConfirming(true)}
             >
-              <Trash2 className="h-3.5 w-3.5" /> Revoke key
+              <Trash2 className="h-3.5 w-3.5" /> Revoke
             </Button>
           )}
         </div>
@@ -332,9 +371,20 @@ function KeyCard({ apiKey, categories }: { apiKey: ApiKey; categories: ToolCateg
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
+const LS_DEFAULT_KEY = "monkkit_default_key_id";
+
 export function DashboardClient({ keys, categories, userName, userImage }: Props) {
   const [creating, setCreating] = useState(false);
+  const [defaultKeyId, setDefaultKeyId] = useState<string>(() => {
+    if (typeof window === "undefined") return keys[0]?.id ?? "";
+    return localStorage.getItem(LS_DEFAULT_KEY) ?? keys[0]?.id ?? "";
+  });
   const donateUrl = process.env.NEXT_PUBLIC_DONATE_URL ?? "https://buymeacoffee.com";
+
+  const setDefault = (id: string) => {
+    setDefaultKeyId(id);
+    if (typeof window !== "undefined") localStorage.setItem(LS_DEFAULT_KEY, id);
+  };
 
   const totalUsageToday = keys.reduce((s, k) => s + k.usageToday, 0);
   const firstKey = keys[0];
@@ -446,7 +496,7 @@ export function DashboardClient({ keys, categories, userName, userImage }: Props
           ) : (
             <div className="flex flex-col gap-4">
               {keys.map((k) => (
-                <KeyCard key={k.id} apiKey={k} categories={categories} />
+                <KeyCard key={k.id} apiKey={k} categories={categories} isDefault={k.id === defaultKeyId} onSetDefault={() => setDefault(k.id)} />
               ))}
             </div>
           )}

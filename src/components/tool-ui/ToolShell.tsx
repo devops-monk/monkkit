@@ -11,6 +11,8 @@ import { registry } from "@/registry";
 import { getCategoryIcon } from "@/lib/category-icons";
 import type { ToolMeta } from "@/types/registry";
 import { API_EXAMPLES } from "@/registry/api-examples";
+import { useClipboard } from "@/hooks/useClipboard";
+import { Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -37,6 +39,32 @@ function buildCurlBody(example: Record<string, unknown> | undefined): string {
   return `'${indented}'`;
 }
 
+function CurlBlock({ curl }: { curl: string }) {
+  const { copied, copy } = useClipboard();
+  return (
+    <div className="rounded-xl overflow-hidden border border-border">
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/60 border-b border-border">
+        <div className="flex gap-1.5">
+          <div className="h-3 w-3 rounded-full bg-red-400/80" />
+          <div className="h-3 w-3 rounded-full bg-yellow-400/80" />
+          <div className="h-3 w-3 rounded-full bg-green-400/80" />
+        </div>
+        <span className="text-xs text-muted-foreground ml-1 flex-1">terminal</span>
+        <button
+          onClick={() => copy(curl)}
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-[#8b949e] hover:text-[#e6edf3] hover:bg-white/10 transition-colors"
+        >
+          {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? "Copied!" : "Copy"}
+        </button>
+      </div>
+      <pre className="bg-[#0d1117] text-[#e6edf3] p-5 text-sm font-mono overflow-x-auto leading-relaxed whitespace-pre-wrap">
+        {curl}
+      </pre>
+    </div>
+  );
+}
+
 interface UserKey {
   id: string;
   key: string;
@@ -54,11 +82,16 @@ function ApiUsagePanel({ meta }: { meta: ToolMeta }) {
       .catch(() => {});
   }, []);
 
-  // Prefer a key that has permission for this category; fall back to first key
-  const matchingKey = keys.find((k) => k.permissions.includes(meta.category));
-  const activeKey = matchingKey ?? keys[0] ?? null;
+  // Priority: saved default key (localStorage) > key matching category > first key
+  const savedDefaultId = typeof window !== "undefined" ? localStorage.getItem("monkkit_default_key_id") : null;
+  const defaultKey = keys.find((k) => k.id === savedDefaultId) ?? keys[0] ?? null;
+  const matchingKey =
+    (defaultKey?.permissions.includes(meta.category) ? defaultKey : null) ??
+    keys.find((k) => k.permissions.includes(meta.category)) ??
+    null;
+  const activeKey = matchingKey ?? defaultKey ?? null;
   const hasPermission = !!matchingKey;
-  const noPermissionKey = activeKey && !hasPermission; // has a key but wrong permissions
+  const noPermissionKey = activeKey && !hasPermission;
 
   const endpoint = `/api/v1/${meta.category}/${meta.slug}`;
   const fullUrl = `${BASE_URL}${endpoint}`;
@@ -147,19 +180,7 @@ function ApiUsagePanel({ meta }: { meta: ToolMeta }) {
         )}
 
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">curl Example</p>
-        <div className="rounded-xl overflow-hidden border border-border">
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/60 border-b border-border">
-            <div className="flex gap-1.5">
-              <div className="h-3 w-3 rounded-full bg-red-400/80" />
-              <div className="h-3 w-3 rounded-full bg-yellow-400/80" />
-              <div className="h-3 w-3 rounded-full bg-green-400/80" />
-            </div>
-            <span className="text-xs text-muted-foreground ml-1">terminal</span>
-          </div>
-          <pre className="bg-[#0d1117] text-[#e6edf3] p-5 text-sm font-mono overflow-x-auto leading-relaxed whitespace-pre-wrap">
-            {curl}
-          </pre>
-        </div>
+        <CurlBlock curl={curl} />
 
         {/* Request body field reference */}
         {example && Object.keys(example).length > 0 && (
