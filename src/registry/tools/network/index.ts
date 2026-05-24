@@ -365,4 +365,18 @@ export const networkTools: ToolDefinition[] = [
     component: () => import("@/tools/network/port-check"),
     process: (input) => import("@/tools/network/port-check/logic").then((m) => m.process(input)),
   },
+  {
+    id: "network-tcp-connect",
+    slug: "tcp-connect",
+    name: "TCP Connect",
+    shortDescription: "Connect to any host and port and see the service banner — like telnet.",
+    description: "Open a raw TCP connection to any host:port and capture the service greeting banner. Works like `telnet host port` — shows whether the port is open and what the service responds with (SSH version, SMTP 220, MySQL handshake, Redis PONG, etc.).",
+    category: "network",
+    tags: ["telnet", "tcp", "connect", "banner", "port", "service", "mysql", "ssh", "smtp", "redis"],
+    keywords: ["telnet online", "tcp connect tool", "check port banner", "service banner grab", "telnet port checker"],
+    icon: "Terminal",
+    status: "new",
+    component: () => import("@/tools/network/tcp-connect"),
+    process: (input) => import("@/tools/network/tcp-connect/logic").then((m) => m.process(input)),
+  },
 ];
