@@ -6,7 +6,7 @@ import { ClearButton } from "@/components/tool-ui/ClearButton";
 import { PasteButton } from "@/components/tool-ui/PasteButton";
 import { ErrorDisplay } from "@/components/tool-ui/ErrorDisplay";
 import { process } from "./logic";
-import type { DiffLine } from "./logic";
+import type { DiffLine, WordSpan } from "./logic";
 import type { ToolComponentProps } from "@/types/registry";
 
 const SAMPLE_LEFT = `The quick brown fox jumps over the lazy dog.
@@ -22,38 +22,65 @@ The five boxing wizards jumped quickly.
 Waltz, bad nymph, for quick jigs vex.
 Sphinx of black quartz, judge my vow.`;
 
-const LINE_COLORS: Record<string, string> = {
-  added: "bg-green-500/15 border-l-2 border-green-500",
-  removed: "bg-red-500/15 border-l-2 border-red-500",
-  unchanged: "",
-};
-
 const NUM_COLORS: Record<string, string> = {
   added: "text-green-600 dark:text-green-400",
   removed: "text-red-600 dark:text-red-400",
+  changed: "text-yellow-600 dark:text-yellow-400",
   unchanged: "text-muted-foreground",
 };
+
+function InlineSpans({ spans }: { spans: WordSpan[] }) {
+  return (
+    <>
+      {spans.map((s, i) =>
+        s.type === "removed" ? (
+          <mark key={i} className="bg-red-400/40 dark:bg-red-500/40 text-inherit rounded-sm">{s.text}</mark>
+        ) : s.type === "added" ? (
+          <mark key={i} className="bg-green-400/40 dark:bg-green-500/40 text-inherit rounded-sm">{s.text}</mark>
+        ) : (
+          <span key={i}>{s.text}</span>
+        )
+      )}
+    </>
+  );
+}
 
 function SideBySideRow({ line }: { line: DiffLine }) {
   const isAdded = line.type === "added";
   const isRemoved = line.type === "removed";
+  const isChanged = line.type === "changed";
+
+  const leftBg = isAdded ? "bg-muted/10" : isRemoved ? "bg-red-500/10 border-l-2 border-red-500" : isChanged ? "bg-red-500/10 border-l-2 border-red-500" : "";
+  const rightBg = isRemoved ? "bg-muted/10" : isAdded ? "bg-green-500/10 border-l-2 border-green-500" : isChanged ? "bg-green-500/10 border-l-2 border-green-500" : "";
 
   return (
     <div className="grid grid-cols-2 divide-x divide-border/40 text-xs font-mono">
-      <div className={`flex gap-2 px-2 py-0.5 min-h-[1.5rem] ${isAdded ? "bg-muted/20" : LINE_COLORS[line.type]}`}>
+      <div className={`flex gap-2 px-2 py-0.5 min-h-[1.5rem] ${leftBg}`}>
         <span className={`w-7 shrink-0 select-none text-right ${isAdded ? "text-muted-foreground/30" : NUM_COLORS[line.type]}`}>
           {line.leftNum ?? ""}
         </span>
-        <span className={`whitespace-pre-wrap break-all ${isAdded ? "opacity-0 select-none" : ""}`}>
-          {isAdded ? " " : line.leftLine ?? ""}
+        <span className="whitespace-pre-wrap break-all">
+          {isAdded ? (
+            <span className="opacity-0 select-none"> </span>
+          ) : isChanged && line.leftSpans ? (
+            <InlineSpans spans={line.leftSpans} />
+          ) : (
+            line.leftLine ?? ""
+          )}
         </span>
       </div>
-      <div className={`flex gap-2 px-2 py-0.5 min-h-[1.5rem] ${isRemoved ? "bg-muted/20" : LINE_COLORS[isRemoved ? "unchanged" : line.type]}`}>
+      <div className={`flex gap-2 px-2 py-0.5 min-h-[1.5rem] ${rightBg}`}>
         <span className={`w-7 shrink-0 select-none text-right ${isRemoved ? "text-muted-foreground/30" : NUM_COLORS[line.type]}`}>
           {line.rightNum ?? ""}
         </span>
-        <span className={`whitespace-pre-wrap break-all ${isRemoved ? "opacity-0 select-none" : ""}`}>
-          {isRemoved ? " " : line.rightLine ?? ""}
+        <span className="whitespace-pre-wrap break-all">
+          {isRemoved ? (
+            <span className="opacity-0 select-none"> </span>
+          ) : isChanged && line.rightSpans ? (
+            <InlineSpans spans={line.rightSpans} />
+          ) : (
+            line.rightLine ?? ""
+          )}
         </span>
       </div>
     </div>
@@ -61,23 +88,46 @@ function SideBySideRow({ line }: { line: DiffLine }) {
 }
 
 function UnifiedRow({ line }: { line: DiffLine }) {
-  const prefix = { added: "+", removed: "-", unchanged: " " };
+  const isChanged = line.type === "changed";
   const colors = {
-    added: "bg-green-500/15 text-green-700 dark:text-green-300 border-l-2 border-green-500",
-    removed: "bg-red-500/15 text-red-700 dark:text-red-300 border-l-2 border-red-500",
-    unchanged: "text-foreground",
+    added: "bg-green-500/10 border-l-2 border-green-500",
+    removed: "bg-red-500/10 border-l-2 border-red-500",
+    changed: "bg-yellow-500/10 border-l-2 border-yellow-500",
+    unchanged: "",
   };
+  const prefix = { added: "+", removed: "-", changed: "~", unchanged: " " };
 
   return (
-    <div className={`flex gap-2 px-2 py-0.5 text-xs font-mono min-h-[1.5rem] ${colors[line.type]}`}>
-      <span className={`w-7 shrink-0 text-right select-none ${NUM_COLORS[line.type]}`}>
-        {line.leftNum ?? line.rightNum ?? ""}
-      </span>
-      <span className="w-3 shrink-0 select-none">{prefix[line.type]}</span>
-      <span className="whitespace-pre-wrap break-all">
-        {line.type === "removed" ? line.leftLine : line.rightLine}
-      </span>
-    </div>
+    <>
+      {isChanged ? (
+        <>
+          <div className={`flex gap-2 px-2 py-0.5 text-xs font-mono min-h-[1.5rem] bg-red-500/10 border-l-2 border-red-500`}>
+            <span className={`w-7 shrink-0 text-right select-none ${NUM_COLORS.removed}`}>{line.leftNum ?? ""}</span>
+            <span className="w-3 shrink-0 select-none">-</span>
+            <span className="whitespace-pre-wrap break-all">
+              {line.leftSpans ? <InlineSpans spans={line.leftSpans} /> : line.leftLine}
+            </span>
+          </div>
+          <div className={`flex gap-2 px-2 py-0.5 text-xs font-mono min-h-[1.5rem] bg-green-500/10 border-l-2 border-green-500`}>
+            <span className={`w-7 shrink-0 text-right select-none ${NUM_COLORS.added}`}>{line.rightNum ?? ""}</span>
+            <span className="w-3 shrink-0 select-none">+</span>
+            <span className="whitespace-pre-wrap break-all">
+              {line.rightSpans ? <InlineSpans spans={line.rightSpans} /> : line.rightLine}
+            </span>
+          </div>
+        </>
+      ) : (
+        <div className={`flex gap-2 px-2 py-0.5 text-xs font-mono min-h-[1.5rem] ${colors[line.type]}`}>
+          <span className={`w-7 shrink-0 text-right select-none ${NUM_COLORS[line.type]}`}>
+            {line.leftNum ?? line.rightNum ?? ""}
+          </span>
+          <span className="w-3 shrink-0 select-none">{prefix[line.type]}</span>
+          <span className="whitespace-pre-wrap break-all">
+            {line.type === "removed" ? line.leftLine : line.rightLine}
+          </span>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -99,7 +149,6 @@ export default function TextDiff({ toolMeta: _ }: ToolComponentProps) {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      {/* Controls */}
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={handleCompare} disabled={!left && !right}>
           Compare
@@ -131,7 +180,6 @@ export default function TextDiff({ toolMeta: _ }: ToolComponentProps) {
 
       {result?.error && <ErrorDisplay message={result.error} />}
 
-      {/* Input panes */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground font-medium px-1">Original</span>
@@ -153,10 +201,8 @@ export default function TextDiff({ toolMeta: _ }: ToolComponentProps) {
         </div>
       </div>
 
-      {/* Results */}
       {result?.success && (
         <div className="flex flex-col gap-2">
-          {/* Stats + view toggle */}
           <div className="flex flex-wrap items-center gap-3 text-xs">
             <span className="text-green-600 dark:text-green-400 font-medium">+{result.addedCount} added</span>
             <span className="text-red-600 dark:text-red-400 font-medium">−{result.removedCount} removed</span>
@@ -183,7 +229,6 @@ export default function TextDiff({ toolMeta: _ }: ToolComponentProps) {
             </div>
           </div>
 
-          {/* Diff view */}
           <div className="rounded-lg border border-border/50 bg-background overflow-auto max-h-[500px]">
             {view === "split" && (
               <div className="grid grid-cols-2 divide-x divide-border/40 text-xs font-mono border-b border-border/50 bg-muted/30 px-2 py-1">
